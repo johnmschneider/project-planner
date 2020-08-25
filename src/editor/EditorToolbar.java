@@ -1,7 +1,7 @@
 /*
  * (C) John Schneider 2020
  */
-package main;
+package editor;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -17,19 +17,26 @@ import java.awt.event.WindowEvent;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import main.HoverHandler;
+import main.MainToolbarDragHandler;
+import main.ResourceFile;
+import main.ResourceLoader;
+import main.WrapLayout;
 
 /**
  *
  * @author John Schneider
  */
-public class MainToolbar extends JPanel implements ActionListener
+public class EditorToolbar extends JPanel implements ActionListener, 
+    ToolbarHeight
 {
     private JPanel toolbarTop, toolbarBottom;
     private JPanel searchHolder;
     private JPanel windowButtonsHolder;
     private JButton minimize, restoreMaximize, close;
     private JFrame window;
-    private FlowLayout layout;
+    private FlowLayout noVgapFlowlayout;
+    private BorderLayout noVgapBorderLayout;
     
     private boolean isMaximizeButton;
     private Dimension restoreSize;
@@ -37,7 +44,9 @@ public class MainToolbar extends JPanel implements ActionListener
     private GraphicsConfiguration config;
     private Toolkit defaultToolkit;
     
-    public MainToolbar(JFrame window)
+    private JButton newTask;
+    
+    public EditorToolbar(JFrame window)
     {
         super();
         
@@ -57,9 +66,13 @@ public class MainToolbar extends JPanel implements ActionListener
     
     private void buildThis()
     {
-        layout = new FlowLayout();
-        layout.setVgap(0);
-        this.setLayout(layout);
+        noVgapFlowlayout = new FlowLayout();
+        noVgapFlowlayout.setVgap(0);
+        
+        noVgapBorderLayout = new BorderLayout();
+        noVgapBorderLayout.setVgap(0);
+        
+        this.setLayout(noVgapBorderLayout);
         
         buildToolbar();
     }
@@ -97,7 +110,7 @@ public class MainToolbar extends JPanel implements ActionListener
     private void buildWindowButtonsHolder()
     {
         windowButtonsHolder = new JPanel();
-        windowButtonsHolder.setLayout(layout);
+        windowButtonsHolder.setLayout(noVgapFlowlayout);
         windowButtonsHolder.setOpaque(false);
         
         FlowLayout fl = new FlowLayout();
@@ -138,6 +151,25 @@ public class MainToolbar extends JPanel implements ActionListener
     private void buildBottom()
     {
         toolbarBottom = new JPanel();
+        
+        toolbarBottom.setBackground(new Color(66, 57, 239));
+        toolbarBottom.setPreferredSize(new Dimension(
+            window.getWidth(), 50));
+        
+        toolbarBottom.setBackground(new Color(183, 205, 255));
+        
+        toolbarBottom.setLayout(new FlowLayout(FlowLayout.LEFT));
+        
+        Dimension size = new Dimension(35, 35);
+        newTask = new JButton();
+        newTask.setOpaque(false);
+        newTask.setContentAreaFilled(false);
+        
+        newTask.setIcon(ResourceLoader.getScaledImageIcon(
+            new ResourceFile("newTask.png"), size));
+        newTask.setPreferredSize(new Dimension(45, 45));
+        
+        toolbarBottom.add(newTask);
     }
     
     private void addComponentsToThis()
@@ -196,7 +228,6 @@ public class MainToolbar extends JPanel implements ActionListener
         {
             window.dispatchEvent(new WindowEvent(window, 
                 WindowEvent.WINDOW_CLOSING));
-            Main.flagProgramAsExiting();
         }
     }
     
@@ -222,5 +253,11 @@ public class MainToolbar extends JPanel implements ActionListener
         
         toolbarBottom.setPreferredSize(new Dimension(width,
             toolbarBottom.getHeight()));
+    }
+    
+    @Override
+    public int getTotalHeight()
+    {
+        return toolbarTop.getHeight() + toolbarBottom.getHeight();
     }
 }

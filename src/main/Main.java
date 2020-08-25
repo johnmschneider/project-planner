@@ -3,12 +3,13 @@
  */
 package main;
 
+import editor.TaskChart;
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
+import java.awt.Color;
+import java.util.HashMap;
 import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+import main.Main.PanelTypeArgs.ArgType;
 
 /**
  *
@@ -16,13 +17,54 @@ import javax.swing.SwingUtilities;
  */
 public class Main implements Runnable
 {
+    public static enum PanelType
+    {
+        MAIN,
+        EDITOR;
+    }
+    
+    public static class PanelTypeArgs
+    {
+        public static enum ArgType
+        {
+            FILEPATH;
+        }
+        
+        private HashMap<ArgType, String> arguments;
+        
+        
+        public PanelTypeArgs()
+        {
+            arguments = new HashMap<>();
+        }
+        
+        public void set(ArgType type, String argument)
+        {
+            arguments.put(type, argument);
+        }
+        
+        public String get(ArgType type)
+        {
+            return arguments.get(type);
+        }
+        
+        public boolean isEmpty()
+        {
+            return arguments.isEmpty();
+        }
+    }
+    
+    private PanelType currentPanelType;
+    
     private JFrame mainWindow;
-    private JScrollPane projectsPane;
-    private JPanel projectsPanePanel;
-    private MainToolbar toolbar;
+    private MainPanel mainPanel;
+    private TaskChart editor;
+    private static boolean programExiting;
     
     public static void main(String[] args)
     {
+        programExiting = false;
+        
         Main main = new Main();
         SwingUtilities.invokeLater(main);
     }
@@ -30,92 +72,119 @@ public class Main implements Runnable
     @Override
     public void run()
     {
+        initializeVariables();
         initializeResourceFile();
-        buildFrame();
-        addComponentsToFrame();
-
+        
+        setCurrentPanelType(PanelType.MAIN, new PanelTypeArgs());
+        
         mainWindow.setVisible(true);
     }
-
-    private void initializeResourceFile()
+    
+    private void initializeVariables()
     {
-        //TODO : replace this with install directory
-        ResourceFile.setResourceDirectoryPath("D:/non college related/java/"
-                + "workspace/project planner/res");
+        currentPanelType = null;
+        
+        initializeFrame();
     }
-
-    private void buildFrame()
+    
+    private void initializeFrame()
     {
         mainWindow = new JFrame("Project Planner");
         mainWindow.setSize(1600, 900);
         mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainWindow.setLayout(new BorderLayout());
         mainWindow.setUndecorated(true);
-        
-        toolbar = new MainToolbar(mainWindow);
-        
-        buildGroups();
-        buildProjectsPane();
     }
-
     
-    private void buildGroups()
+    private void initializeResourceFile()
     {
-
+        //TODO : replace this with install directory
+        ResourceFile.setResourceDirectoryPath("D:/non college related/java/"
+                + "workspace/project planner/res");
     }
-
-    private void buildProjectsPane()
+    
+    public void setCurrentPanelType(PanelType type, PanelTypeArgs args)
     {
-        projectsPane = new JScrollPane();
+        destructPanel(args);
         
-        buildProjectsPanePanel();
-
-        //scroll to top
-        SwingUtilities.invokeLater(new Runnable()
+        currentPanelType = type;
+        initializePanel(args);
+        
+        mainWindow.paintAll(mainWindow.getGraphics());
+    }
+    
+    private void destructPanel(PanelTypeArgs args)
+    {
+        if (previousPanelTypeExists())
         {
-            @Override
-            public void run()
+            switch (currentPanelType)
             {
-                projectsPane.getVerticalScrollBar().setValue(0);
+                case MAIN:
+                    mainPanel.removeComponentsFromFrame();
+
+                    break;
+                case EDITOR:
+                    editor.removeComponentsFromFrame();
+
+                    break;
             }
-        });
-    }
-
-    private void buildProjectsPanePanel()
-    {
-        projectsPanePanel = new JPanel();
-        
-        //GridLayout gl = new GridLayout(0, 10, 10, 5);
-        WrapLayout wl = new WrapLayout();
-        wl.setVgap(20);
-        wl.setHgap(60);
-        projectsPanePanel.setLayout(wl);
-    }
-
-    private void addComponentsToFrame()
-    {
-        addComponentsToProjectsPane();
-        
-        mainWindow.add(toolbar, BorderLayout.NORTH);
-        mainWindow.add(projectsPane, BorderLayout.CENTER);
-    }
-
-    private void addComponentsToProjectsPane()
-    {
-        addComponentsToProjectsPanePanel();
-
-        projectsPane.setViewportView(projectsPanePanel);
-    }
-
-    private void addComponentsToProjectsPanePanel()
-    {
-        projectsPanePanel.add(new NewProjectPanel());
-        
-        // TODO : temp test
-        for (int i = 0; i < 25; i++)
-        {
-            projectsPanePanel.add(new ProjectPreviewPanel(Math.random() > 0.5 ? (Math.random() > 0.5 ? "a super duper long name test" : "1234567890123") : "test"));
         }
     }
     
+    private boolean previousPanelTypeExists()
+    {
+        return currentPanelType != null;
+    }
+    
+    private void initializePanel(PanelTypeArgs args)
+    {
+        switch (currentPanelType)
+        {
+            case MAIN:
+                initializeMain(args);
+                
+                break;
+            case EDITOR:
+                initializeEditor(args);
+                
+                break;
+        }
+    }
+    
+    private void initializeMain(PanelTypeArgs args)
+    {
+        mainPanel = new MainPanel(this);
+        mainPanel.build();
+        mainPanel.addComponentsToFrame();
+    }
+    
+    private void initializeEditor(PanelTypeArgs args)
+    {
+        if (args.isEmpty())
+        {
+            editor = new TaskChart(mainWindow);
+        }
+        else
+        {
+            editor = new TaskChart(args.get(ArgType.FILEPATH), mainWindow);
+        }
+        
+        editor.build();
+        editor.addComponentsToFrame();
+    }
+    
+    public JFrame getMainWindow()
+    {
+        return mainWindow;
+    }
+    
+    public static synchronized void flagProgramAsExiting()
+    {
+        programExiting = true;
+    }
+    
+    public static boolean isProgramExiting()
+    {
+        return programExiting;
+    }
 }
